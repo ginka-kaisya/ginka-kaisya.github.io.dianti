@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>工业精密 3D 电梯仿真系统</title>
+    <style>
+        :root {
+            --floor-h: 120px;
+            --ind-yellow: #f39c12;
+            --steel-dark: #2c3e50;
+            --glass: rgba(52, 152, 219, 0.15);
+            --led-red: #ff3e3e;
+        }
+
+        body {
+            margin: 0; background: #0a0c10; color: #fff;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; overflow: hidden;
+        }
+
+        /* 解决重合问题的三栏布局 */
+        .app-wrapper {
+            display: flex; width: 1000px; justify-content: space-between; 
+            align-items: center; padding: 20px; gap: 40px;
+        }
+
+        /* --- 1. 左侧外呼面板 --- */
+        .side-panel {
+            width: 120px; background: #161a1e; padding: 15px;
+            border: 2px solid #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .floor-call-unit {
+            height: var(--floor-h); border-bottom: 1px dashed #333;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- 2. 中间 3D 模型区 --- */
+        .viewport {
+            width: 400px; height: 750px; position: relative;
+            perspective: 2500px; perspective-origin: center;
+        }
+        .scene-3d {
+            width: 100%; height: 100%; position: absolute;
+            transform-style: preserve-3d; transform: rotateY(-18deg) rotateX(5deg);
+        }
+
+        /* 井道与楼宇背板 */
+        .shaft {
+            position: absolute; width: 100%; height: 100%;
+            transform-style: preserve-3d; border: 4px solid #1a1e22;
+            background: linear-gradient(to bottom, #0f1215 0%, #1a1e22 100%);
+        }
+        /* 楼层横梁效果 */
+        .shaft::after {
+            content: ''; position: absolute; width: 100%; height: 100%;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 118px, #000 120px);
+        }
+
+        /* 顶部曳引轮 */
+        .traction-machine {
+            position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 60px; display: flex; justify-content: center; gap: 20px;
+        }
+        .wheel {
+            width: 35px; height: 35px; border-radius: 50%; border: 4px solid #555;
+            background: #222; animation: rotateWheel 2s linear infinite paused;
+        }
+        @keyframes rotateWheel { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* 轿厢钢索 */
+        .cables {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 50px; height: 100%; display: flex; justify-content: space-around;
+        }
+        .cable-line { width: 1px; height: 100%; background: #444; box-shadow: 0 0 2px #000; }
+
+        /* --- 轿厢系统 --- */
+        .car-group {
+            position: absolute; bottom: 0; left: 50px; width: 300px; height: 125px;
+            transform-style: preserve-3d; transition: bottom 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+        }
+        
+        /* 工业龙门架 */
+        .gantry-frame {
+            position: absolute; width: 100%; height: 100%; transform-style: preserve-3d;
+        }
+        .g-beam { position: absolute; background: var(--ind-yellow); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .g-top { width: 104%; height: 12px; top: -12px; left: -2%; transform: translateZ(70px); }
+        .g-side { width: 10px; height: 130%; top: -15%; transform: translateZ(70px); }
+        .g-l { left: -10px; } .g-r { right: -10px; }
+
+        /* 轿厢主体 */
+        .car-body {
+            position: absolute; width: 90%; height: 100%; left: 5%;
+            transform-style: preserve-3d; background: var(--glass);
+        }
+        .car-face { position: absolute; width: 100%; height: 100%; border: 1px solid rgba(255,255,255,0.1); }
+        .cf-back { transform: translateZ(-60px); background: #111; }
+        .cf-top { height: 120px; transform: rotateX(90deg) translateZ(60px); background: #222; }
+        .cf-top::after { content: ''; position: absolute; width: 60px; height: 2px; background: #fff; top: 50%; left: 50%; transform: translate(-50%,-50%); filter: blur(10px); }
+
+        /* 门系统 */
+        .door-box {
+            position: absolute; width: 100%; height: 100%;
+            transform: translateZ(71px); overflow: hidden; display: flex;
+        }
+        .door-leaf {
+            width: 50%; height: 100%; 
+            background: linear-gradient(90deg, #7f8c8d, #bdc3c7, #7f8c8d);
+            border: 1px solid #333; transition: transform 1.2s cubic-bezier(0.1, 0, 0.3, 1);
+        }
+        .doors-open .door-l { transform: translateX(-98%); }
+        .doors-open .door-r { transform: translateX(98%); }
+
+        /* --- 3. 右侧内操面板 --- */
+        .internal-panel {
+            width: 180px; background: #1c1f22; padding: 25px;
+            border-radius: 12px; border: 3px solid #333; box-shadow: 10px 10px 40px rgba(0,0,0,0.6);
+        }
+        .display-led {
+            background: #000; color: var(--led-red); font-family: 'Courier New', monospace;
+            font-size: 40px; text-align: center; border: 2px solid #444;
+            padding: 10px; margin-bottom: 25px; border-radius: 5px;
+        }
+        .buttons-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-round {
+            width: 60px; height: 60px; border-radius: 50%; border: none;
+            background: #f0f0f0; font-weight: bold; font-size: 20px; cursor: pointer;
+            box-shadow: 0 6px #bdc3c7; transition: 0.1s;
+        }
+        .btn-round:active { transform: translateY(3px); box-shadow: 0 3px #bdc3c7; }
+        .btn-round.active { background: var(--ind-yellow); color: #fff; box-shadow: 0 6px #a66108; }
+
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <div class="side-panel" id="outUI"></div>
+
+    <div class="viewport">
+        <div class="traction-machine">
+            <div class="wheel" id="w1"></div>
+            <div class="wheel" id="w2"></div>
+        </div>
+        
+        <div class="scene-3d">
+            <div class="shaft">
+                <div class="cables">
+                    <div class="cable-line"></div>
+                    <div class="cable-line"></div>
+                </div>
+                
+                <div class="car-group" id="elv">
+                    <div class="gantry-frame">
+                        <div class="g-beam g-top"></div>
+                        <div class="g-beam g-side g-l"></div>
+                        <div class="g-beam g-side g-r"></div>
+                    </div>
+                    
+                    <div class="car-body">
+                        <div class="car-face cf-back"></div>
+                        <div class="car-face cf-top"></div>
+                        <div class="door-box" id="doorSys">
+                            <div class="door-leaf door-l"></div>
+                            <div class="door-leaf door-r"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="internal-panel">
+        <div class="display-led" id="led">1</div>
+        <div class="buttons-grid" id="inUI"></div>
+    </div>
+</div>
+
+<script>
+    const elv = document.getElementById('elv');
+    const led = document.getElementById('led');
+    const doorSys = document.getElementById('doorSys');
+    const wheels = [document.getElementById('w1'), document.getElementById('w2')];
+    
+    let currentFloor = 1;
+    let isMoving = false;
+    let doorTimer = null;
+
+    function init() {
+        const out = document.getElementById('outUI');
+        const ins = document.getElementById('inUI');
+        for(let i=1; i<=6; i++) {
+            out.innerHTML = `<div class="floor-call-unit">
+                <span style="font-size:12px; color:#666">${i}F</span>
+                <button class="btn-round" style="width:45px; height:45px; font-size:12px" id="o-${i}" onclick="requestFloor(${i})">▲▼</button>
+            </div>` + out.innerHTML;
+            ins.insertAdjacentHTML('afterbegin', `<button class="btn-round" id="i-${i}" onclick="requestFloor(${i})">${i}</button>`);
+        }
+    }
+
+    function requestFloor(target) {
+        if(isMoving || target === currentFloor) return;
+        isMoving = true;
+
+        // 1. 立即执行关门逻辑
+        clearTimeout(doorTimer);
+        doorSys.classList.remove('doors-open');
+
+        // 2. 状态高亮
+        document.getElementById(`o-${target}`).classList.add('active');
+        document.getElementById(`i-${target}`).classList.add('active');
+
+        // 3. 运行逻辑 (等待关门后再移动)
+        setTimeout(() => {
+            wheels.forEach(w => w.style.animationPlayState = 'running');
+            elv.style.bottom = (target-1)*120 + "px";
+
+            let step = currentFloor;
+            const dir = target > currentFloor ? 1 : -1;
+            
+            const runInterval = setInterval(() => {
+                if(step !== target) {
+                    step += dir;
+                    led.innerText = step;
+                } else {
+                    clearInterval(runInterval);
+                    finishMovement(target);
+                }
+            }, 600);
+        }, 1200); // 等待关门动画完成
+    }
+
+    function finishMovement(target) {
+        currentFloor = target;
+        wheels.forEach(w => w.style.animationPlayState = 'paused');
+        
+        // 到达后处理
+        setTimeout(() => {
+            isMoving = false;
+            doorSys.classList.add('doors-open'); // 自动开门
+            document.querySelectorAll('.btn-round').forEach(b => b.classList.remove('active'));
+            
+            // 4. 关键：开门 3.5 秒后自动关门
+            doorTimer = setTimeout(() => {
+                if(!isMoving) {
+                    doorSys.classList.remove('doors-open');
+                }
+            }, 3500);
+        }, 500);
+    }
+
+    init();
+</script>
+</body>
+</html>
