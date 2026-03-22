@@ -2,240 +2,284 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>3D 工业级机械架构仿真 - 深度建模版</title>
+    <title>工程级 3D 电梯机械系统 - 全空间仿真版</title>
     <style>
         :root {
             --floor-h: 120px;
             --ind-yellow: #f1c40f; 
-            --iron-grey: #34495e;
-            --deep-shaft: #080a0c;
-            --brushed-steel: linear-gradient(180deg, #bdc3c7 0%, #ffffff 50%, #bdc3c7 100%);
+            --steel-grey: #7f8c8d;
+            --rope-color: #95a5a6;
+            --shaft-depth: 300px;
         }
 
         body {
-            margin: 0; background: #050607; color: #fff;
-            font-family: 'Consolas', 'Segoe UI', sans-serif;
-            display: flex; justify-content: center; align-items: center; height: 100vh;
-            overflow: hidden; perspective: 2000px;
+            margin: 0; background: #050608; color: #fff;
+            font-family: 'Segoe UI', Consolas, monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden; perspective: 1500px;
         }
 
-        .app-container { display: flex; gap: 80px; align-items: center; transform-style: preserve-3d; }
+        /* 控制台布局 */
+        .main-layout { display: flex; gap: 50px; align-items: center; transform-style: preserve-3d; }
 
-        /* === 3D 井道核心 === */
+        /* === 3D 场景核心 === */
+        .scene-wrap {
+            width: 450px; height: 750px; position: relative;
+            transform-style: preserve-3d;
+            transform: rotateY(-20deg) rotateX(10deg);
+            transition: transform 0.5s ease-out;
+        }
+
         .shaft-3d {
-            width: 400px; height: 750px; position: relative;
-            transform-style: preserve-3d;
-            transform: rotateY(-25deg) rotateX(10deg);
-            transition: transform 0.8s ease-out;
-        }
-        .shaft-3d:hover { transform: rotateY(-10deg) rotateX(5deg); }
-
-        /* 井道壁 */
-        .shaft-wall {
             position: absolute; width: 100%; height: 100%;
-            background: rgba(20, 24, 28, 0.95); border: 1px solid #1a252f;
-        }
-        .wall-back { transform: translateZ(-150px); background: linear-gradient(#0a0c0e, #14181b); }
-        .wall-left { width: 300px; transform: rotateY(90deg) translateZ(-150px); background: #0c0e10; }
-        .wall-right { width: 300px; transform: rotateY(-90deg) translateZ(-250px); background: #0c0e10; }
-
-        /* 立体 T 型导轨 */
-        .rail-3d {
-            position: absolute; width: 12px; height: 100%;
-            left: 20px; transform: translateZ(-10px);
-            background: #444; border-left: 2px solid #222;
             transform-style: preserve-3d;
         }
-        .rail-3d::after { /* 导轨侧面 */
-            content: ''; position: absolute; width: 10px; height: 100%;
-            background: #222; transform: rotateY(90deg); transform-origin: left;
-        }
-        .rail-right { left: auto; right: 20px; }
 
-        /* 导轨立体支架 */
-        .bracket-3d {
-            position: absolute; width: 40px; height: 6px; background: #111;
-            left: -10px; transform: rotateX(90deg) translateZ(0);
-            border: 1px solid #333;
+        /* 井道结构壁 */
+        .wall {
+            position: absolute; background: rgba(15, 18, 22, 0.98);
+            border: 1px solid #1a252f; box-shadow: inset 0 0 100px #000;
+        }
+        .wall-back { width: 100%; height: 100%; transform: translateZ(calc(var(--shaft-depth) * -1 / 2)); }
+        .wall-left { width: var(--shaft-depth); height: 100%; transform: rotateY(90deg) translateZ(calc(var(--shaft-depth) * -1 / 2)); }
+        .wall-right { width: var(--shaft-depth); height: 100%; transform: rotateY(-90deg) translateZ(calc(450px - var(--shaft-depth) / 2)); }
+
+        /* 立体导轨 (主轨) */
+        .rail-3d {
+            position: absolute; width: 12px; height: 100%; background: #333;
+            left: 30px; transform: translateZ(0); transform-style: preserve-3d;
+        }
+        .rail-3d::before { /* 轨道侧翼 */
+            content: ''; position: absolute; width: 8px; height: 100%; background: #222;
+            transform: rotateY(90deg); left: 6px;
+        }
+        .rail-right { left: auto; right: 30px; }
+
+        /* 对重导轨 (位于背壁) */
+        .cw-rail {
+            position: absolute; width: 8px; height: 100%; background: #222;
+            left: 50%; transform: translateX(-50%) translateZ(calc(var(--shaft-depth) * -1 / 2 + 10px));
         }
 
-        /* 机房机械组 */
-        .machine-room {
-            position: absolute; top: -110px; width: 440px; left: -20px; height: 110px;
-            background: #111; border: 2px solid #333; transform-style: preserve-3d;
-            transform: translateZ(-50px);
-        }
-        .main-pulley {
-            position: absolute; width: 70px; height: 70px; border-radius: 50%;
-            background: conic-gradient(#666 0 45deg, #111 45deg 90deg, #666 90deg 135deg, #111 135deg 180deg, #666 180deg 225deg, #111 225deg 270deg, #666 270deg 315deg, #111 315deg 360deg);
-            top: 20px; left: 60px; border: 6px solid #000; transition: transform 0.5s linear;
-        }
-
-        /* === 3D 轿厢系统 === */
-        .car-group {
-            position: absolute; bottom: 0; left: 60px; width: 280px; height: 130px;
+        /* === 3D 轿厢组 === */
+        .car-system {
+            position: absolute; bottom: 0; left: 65px; width: 320px; height: 135px;
             transform-style: preserve-3d; transition: bottom 2.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 轿顶轮组 (Top Sheaves) */
-        .top-pulley {
-            position: absolute; width: 40px; height: 40px; border-radius: 50%;
-            background: #222; border: 3px solid var(--ind-yellow);
-            top: -45px; transform: rotateY(90deg);
+        /* 轿顶动滑轮 (2:1 绕绳) */
+        .pulley-box {
+            position: absolute; top: -45px; width: 100%; display: flex; justify-content: space-around;
+            transform: rotateY(90deg); transform-style: preserve-3d;
         }
-        .pulley-l { left: 40px; } .pulley-r { right: 40px; }
-
-        /* 龙门架立体结构 */
-        .sling-upright {
-            position: absolute; width: 14px; height: 170px; top: -20px;
-            background: var(--ind-yellow); transform: translateZ(60px);
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-        }
-        .u-left { left: 10px; } .u-right { right: 10px; }
-
-        /* 轿厢主体 3D 渲染 */
-        .car-body {
-            position: absolute; width: 240px; height: 100%; left: 20px;
-            transform-style: preserve-3d; transform: translateZ(0);
-        }
-        .face { position: absolute; border: 1px solid #aaa; }
-        .f-front { width: 100%; height: 100%; transform: translateZ(80px); background: rgba(255,255,255,0.05); border: 2px solid #444; }
-        .f-back { width: 100%; height: 100%; transform: translateZ(-80px); background: var(--brushed-steel); box-shadow: inset 0 0 50px #fff; }
-        .f-left { width: 160px; height: 100%; transform: rotateY(90deg) translateZ(-80px); background: #eee; }
-        .f-right { width: 160px; height: 100%; transform: rotateY(-90deg) translateZ(-160px); background: #eee; }
-        .f-top { width: 100%; height: 160px; transform: rotateX(90deg) translateZ(80px); background: #fff; box-shadow: 0 0 40px #fff; }
-        .f-bottom { width: 100%; height: 160px; transform: rotateX(90deg) translateZ(-50px); background: #34495e; }
-
-        /* 门系统 */
-        .door-gate { position: absolute; width: 100%; height: 100%; overflow: hidden; display: flex; transform: translateZ(81px); }
-        .leaf { width: 50%; height: 100%; background: linear-gradient(90deg, #95a5a6, #fff, #95a5a6); border: 1px solid #7f8c8d; transition: transform 1.2s; }
-        .open .l-leaf { transform: translateX(-100%); }
-        .open .r-leaf { transform: translateX(100%); }
-
-        /* 3D 弹簧缓冲器 (Pit Buffers) */
-        .buffer-3d {
-            position: absolute; bottom: 10px; width: 40px; height: 50px;
-            left: 100px; transform-style: preserve-3d;
-        }
-        .spring-coil {
-            width: 100%; height: 8px; background: #c0392b; border-radius: 20px;
-            margin-bottom: 2px; border: 1px solid #000;
+        .pulley {
+            width: 45px; height: 45px; border-radius: 50%; border: 4px solid var(--ind-yellow);
+            background: repeating-conic-gradient(#333 0 30deg, #111 30deg 60deg);
         }
 
-        /* UI Panel */
-        .panel { background: #1a1c1e; padding: 25px; border: 1px solid #333; box-shadow: 0 20px 50px #000; transform: translateZ(100px); }
-        .led { background: #000; color: #00ff00; font-size: 32px; text-align: center; margin-bottom: 15px; font-family: 'Digital-7', 'Courier New'; padding: 5px; }
-        button { width: 50px; height: 50px; background: #2c3e50; color: #fff; border: 1px solid #444; margin: 4px; cursor: pointer; }
+        /* 3D 轿体 */
+        .car-3d {
+            position: absolute; width: 100%; height: 100%; transform-style: preserve-3d;
+        }
+        .car-face { position: absolute; border: 1px solid #555; box-sizing: border-box; }
+        .c-front { width: 100%; height: 100%; transform: translateZ(80px); background: rgba(255,255,255,0.05); }
+        .c-back { width: 100%; height: 100%; transform: translateZ(-80px); background: #bdc3c7; box-shadow: inset 0 0 50px #fff; }
+        .c-left { width: 160px; height: 100%; transform: rotateY(90deg) translateZ(-80px); background: #ecf0f1; }
+        .c-right { width: 160px; height: 100%; transform: rotateY(-90deg) translateZ(-240px); background: #ecf0f1; }
+        .c-top { width: 100%; height: 160px; transform: rotateX(90deg) translateZ(80px); background: #fff; box-shadow: 0 0 40px #fff; }
+        .c-bottom { width: 100%; height: 160px; transform: rotateX(90deg) translateZ(-55px); background: #2c3e50; }
+
+        /* 轿门立体感 */
+        .door-set { position: absolute; width: 100%; height: 100%; display: flex; transform: translateZ(81px); overflow: hidden; }
+        .d-leaf { width: 50%; height: 100%; background: linear-gradient(90deg, #7f8c8d, #fff, #7f8c8d); border: 1px solid #34495e; transition: 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .open .d-left { transform: translateX(-100%); }
+        .open .d-right { transform: translateX(100%); }
+
+        /* === 3D 对重装置 (3D Counterweight) === */
+        .cw-system {
+            position: absolute; top: 0; left: 50%; width: 60px; height: 160px;
+            transform: translateX(-50%) translateZ(calc(var(--shaft-depth) * -1 / 2 + 20px));
+            transform-style: preserve-3d; transition: top 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cw-frame {
+            position: absolute; width: 100%; height: 100%; border: 3px solid #555;
+            background: rgba(0,0,0,0.8); transform-style: preserve-3d;
+        }
+        .weight-block-3d {
+            width: 100%; height: 12px; background: #222; border: 1px solid #444;
+            margin-bottom: 2px; transform: translateZ(5px); box-shadow: 0 2px 5px #000;
+        }
+
+        /* 钢丝绳 (SVG 动态模拟) */
+        .ropes-svg {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            pointer-events: none; transform: translateZ(0px);
+        }
+
+        /* UI */
+        .controls {
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .panel { 
+            background: #111; padding: 20px; border: 1px solid #333; 
+            border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .screen { background: #000; color: #0f0; font-family: 'Digital-7', Courier; font-size: 32px; text-align: center; padding: 10px; margin-bottom: 15px; border: 1px solid #222; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { width: 50px; height: 50px; background: #2c3e50; color: #fff; border: 1px solid #444; cursor: pointer; font-weight: bold; }
         button.active { border-color: var(--ind-yellow); color: var(--ind-yellow); box-shadow: 0 0 15px var(--ind-yellow); }
-
+        
+        .cam-slider { width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="panel" id="outUI"></div>
-
-    <div class="shaft-3d">
-        <div class="shaft-wall wall-back"></div>
-        <div class="shaft-wall wall-left"></div>
-        <div class="shaft-wall wall-right"></div>
-
-        <div class="rail-3d" id="railL"></div>
-        <div class="rail-3d rail-right" id="railR"></div>
-
-        <div class="machine-room">
-            <div class="main-pulley" id="mainWhl"></div>
+<div class="main-layout">
+    <div class="controls">
+        <div class="panel">
+            <div style="font-size: 12px; color: #888; margin-bottom: 5px;">3D VIEW ROTATION</div>
+            <input type="range" class="cam-slider" min="-60" max="60" value="-20" oninput="rotateScene(this.value)">
         </div>
+        <div class="panel" id="externalCalls"></div>
+    </div>
 
-        <div class="car-group" id="elv">
-            <div class="top-pulley pulley-l"></div>
-            <div class="top-pulley pulley-r"></div>
+    <div class="scene-wrap" id="scene">
+        <div class="shaft-3d">
+            <div class="wall wall-back"></div>
+            <div class="wall wall-left"></div>
+            <div class="wall wall-right"></div>
             
-            <div class="sling-upright u-left"></div>
-            <div class="sling-upright u-right"></div>
+            <div class="rail-3d"></div>
+            <div class="rail-3d rail-right"></div>
+            <div class="cw-rail"></div>
 
-            <div class="car-body">
-                <div class="face f-back"></div>
-                <div class="face f-left"></div>
-                <div class="face f-right"></div>
-                <div class="face f-top"></div>
-                <div class="face f-bottom"></div>
-                <div class="face f-front">
-                    <div class="door-gate" id="gate">
-                        <div class="leaf l-leaf"></div>
-                        <div class="leaf r-leaf"></div>
+            <svg class="ropes-svg">
+                <line id="ropeL" x1="100" y1="0" x2="100" y2="600" stroke="#777" stroke-width="2" />
+                <line id="ropeR" x1="220" y1="0" x2="220" y2="600" stroke="#777" stroke-width="2" />
+                <line id="ropeCW" x1="225" y1="0" x2="225" y2="150" stroke="#555" stroke-width="3" />
+            </svg>
+
+            <div class="car-system" id="carSys">
+                <div class="pulley-box">
+                    <div class="pulley"></div>
+                    <div class="pulley"></div>
+                </div>
+                <div class="car-3d" id="carBody">
+                    <div class="car-face c-back"></div>
+                    <div class="car-face c-left"></div>
+                    <div class="car-face c-right"></div>
+                    <div class="car-face c-top"></div>
+                    <div class="car-face c-bottom"></div>
+                    <div class="car-face c-front">
+                        <div class="door-set" id="doors">
+                            <div class="d-leaf d-left"></div>
+                            <div class="d-leaf d-right"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="buffer-3d">
-            <div class="spring-coil"></div><div class="spring-coil"></div><div class="spring-coil"></div><div class="spring-coil"></div>
-        </div>
-        <div class="buffer-3d" style="left:auto; right:100px;">
-            <div class="spring-coil"></div><div class="spring-coil"></div><div class="spring-coil"></div><div class="spring-coil"></div>
+            <div class="cw-system" id="cwSys">
+                <div class="cw-frame">
+                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
+                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
+                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
+                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="panel">
-        <div class="led" id="led">1</div>
-        <div id="inUI" style="display: grid; grid-template-columns: 1fr 1fr;"></div>
+    <div class="controls">
+        <div class="panel">
+            <div class="screen" id="led">1</div>
+            <div class="btn-grid" id="internalButtons"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    const elv = document.getElementById('elv');
-    const gate = document.getElementById('gate');
+    const carSys = document.getElementById('carSys');
+    const cwSys = document.getElementById('cwSys');
     const led = document.getElementById('led');
-    const mainWhl = document.getElementById('mainWhl');
-    const railL = document.getElementById('railL');
-    const railR = document.getElementById('railR');
-    let cur = 1, moving = false;
+    const doors = document.getElementById('doors');
+    const scene = document.getElementById('scene');
+    
+    // 绳索逻辑
+    const rL = document.getElementById('ropeL');
+    const rR = document.getElementById('ropeR');
+    const rCW = document.getElementById('ropeCW');
+
+    let curFloor = 1, isMoving = false;
 
     function init() {
-        const out = document.getElementById('outUI');
-        const ins = document.getElementById('inUI');
-        
+        const ext = document.getElementById('externalCalls');
+        const ins = document.getElementById('internalButtons');
         for(let i=1; i<=6; i++) {
-            const h = (i-1) * 120;
-            // 动态生成立体支架
-            railL.insertAdjacentHTML('beforeend', `<div class="bracket-3d" style="bottom:${h+60}px"></div>`);
-            railR.insertAdjacentHTML('beforeend', `<div class="bracket-3d" style="bottom:${h+60}px"></div>`);
-
-            out.innerHTML = `<div style="height:120px; display:flex; align-items:center;"><button onclick="to(${i})">${i}F</button></div>` + out.innerHTML;
-            ins.insertAdjacentHTML('beforeend', `<button onclick="to(${i})" id="btn${i}">${i}</button>`);
+            ext.innerHTML = `<button onclick="goTo(${i})">${i}F</button>` + ext.innerHTML;
+            ins.insertAdjacentHTML('beforeend', `<button onclick="goTo(${i})" id="btn${i}">${i}</button>`);
         }
+        updateRopes(1);
     }
 
-    function to(f) {
-        if(moving || f === cur) return;
-        moving = true;
-        const dir = f > cur ? 1 : -1;
-        gate.classList.remove('open');
+    function rotateScene(val) {
+        scene.style.transform = `rotateY(${val}deg) rotateX(10deg)`;
+    }
+
+    function updateRopes(floor) {
+        const carBottom = (floor-1) * 120;
+        const carTopY = 750 - carBottom - 180; // 考虑轿厢高度和滑轮位置
+        const cwTopY = carBottom + 20; // 对重与轿厢反向运动
+
+        rL.setAttribute('y2', carTopY);
+        rR.setAttribute('y2', carTopY);
+        rCW.setAttribute('y2', cwTopY);
+    }
+
+    function goTo(f) {
+        if(isMoving || f === curFloor) return;
+        isMoving = true;
+        doors.classList.remove('open');
         document.getElementById(`btn${f}`).classList.add('active');
 
-        // 轮盘旋转
-        mainWhl.style.transform = `rotate(${dir * 720}deg)`;
+        // 运动执行
+        carSys.style.bottom = (f-1) * 120 + "px";
+        cwSys.style.top = (f-1) * 120 + "px";
         
-        // 移动
-        elv.style.bottom = (f-1) * 120 + "px";
+        // 动态更新绳索
+        let startPos = (curFloor-1) * 120;
+        let targetPos = (f-1) * 120;
+        let startTime = null;
 
-        let step = cur;
+        function animateRopes(timestamp) {
+            if (!startTime) startTime = timestamp;
+            let progress = (timestamp - startTime) / 2500; // 2.5s duration
+            if (progress > 1) progress = 1;
+
+            const currentFloorSim = curFloor + (f - curFloor) * progress;
+            updateRopes(currentFloorSim);
+
+            if (progress < 1) requestAnimationFrame(animateRopes);
+        }
+        requestAnimationFrame(animateRopes);
+
+        // 楼层显示逻辑
+        let step = curFloor;
+        const dir = f > curFloor ? 1 : -1;
         const timer = setInterval(() => {
             if(step !== f) {
                 step += dir;
                 led.innerText = step;
             } else {
                 clearInterval(timer);
-                cur = f;
+                curFloor = f;
                 setTimeout(() => {
-                    moving = false;
-                    mainWhl.style.transform = `rotate(0deg)`;
+                    isMoving = false;
                     document.getElementById(`btn${f}`).classList.remove('active');
-                    gate.classList.add('open');
+                    doors.classList.add('open');
                 }, 600);
             }
-        }, 500);
+        }, 450);
     }
 
     init();
