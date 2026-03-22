@@ -2,140 +2,150 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>高精工业 CAD 电梯仿真控制系统 - 内部亮化增强版</title>
+    <title>工业级 CAD 电梯机械架构仿真</title>
     <style>
         :root {
             --floor-h: 120px;
-            --ind-yellow: #f39c12; 
+            --ind-yellow: #f1c40f; 
+            --iron-grey: #34495e;
+            --steel-blue: #2c3e50;
             --brushed-steel: linear-gradient(180deg, #bdc3c7 0%, #ffffff 50%, #bdc3c7 100%);
-            /* 修正：大幅提升内部亮度，使用暖白光模拟灯照 */
-            --cabin-light: radial-gradient(circle at center, #ffffff 0%, #e0e0e0 100%);
         }
 
         body {
-            margin: 0; background: #121416; color: #fff;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0; background: #0e1012; color: #fff;
+            font-family: 'Consolas', 'Segoe UI', sans-serif;
             display: flex; justify-content: center; align-items: center; height: 100vh;
             overflow: hidden;
         }
 
-        .app-container { display: flex; gap: 60px; align-items: center; perspective: 3000px; }
+        .app-container { display: flex; gap: 40px; align-items: center; perspective: 2500px; }
 
+        /* === 3D 井道容器 === */
         .scene-3d {
-            width: 320px; height: 740px; position: relative;
-            transform-style: preserve-3d; transform: rotateY(-20deg) rotateX(8deg);
+            width: 360px; height: 760px; position: relative;
+            transform-style: preserve-3d; transform: rotateY(-18deg) rotateX(5deg);
         }
 
         .shaft {
             position: absolute; width: 100%; height: 100%;
             transform-style: preserve-3d;
-            border: 2px solid #333; background: rgba(255,255,255,0.02);
+            border: 2px solid #2c3e50; background: rgba(20, 24, 28, 0.8);
         }
 
-        /* 外部机械结构保持不变 */
-        .rail { position: absolute; width: 4px; height: 100%; background: #444; left: 15px; transform: translateZ(30px); }
-        .rail.right { left: auto; right: 15px; }
-        .machine-room { position: absolute; top: -60px; left: 0; width: 100%; height: 60px; background: #1a1a1a; border: 2px solid #333; transform: translateZ(40px); }
-        .pulley { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle, #bbb, #555); top: 10px; left: 60px; border: 3px solid #222; }
-        .pulley.right { left: auto; right: 60px; }
-        .cable { position: absolute; width: 3px; height: 100%; background: linear-gradient(#aaa, #666); top: 0; transform: translateZ(35px); }
-        .cable.left { left: 78px; } .cable.right { right: 78px; }
+        /* 工业 T 型导轨 */
+        .rail { 
+            position: absolute; width: 12px; height: 100%; 
+            background: #444; left: 8px; transform: translateZ(20px);
+            border-left: 2px solid #222; box-shadow: 2px 0 5px #000;
+        }
+        .rail.right { left: auto; right: 8px; }
 
+        /* 每层楼的厅门门头机械横梁 */
+        .landing-header {
+            position: absolute; width: 100%; height: 25px;
+            background: linear-gradient(to bottom, #222, #444);
+            border-bottom: 2px solid var(--ind-yellow);
+            transform: translateZ(60px); opacity: 0.8;
+            display: flex; align-items: flex-end; justify-content: center;
+            font-size: 10px; color: #666;
+        }
+
+        /* 机房机械组 */
+        .machine-room { 
+            position: absolute; top: -90px; width: 100%; height: 90px; 
+            background: #1a1a1a; border: 2px solid #333; transform: translateZ(40px); 
+        }
+        .traction-motor {
+            position: absolute; width: 80px; height: 50px; background: #1a5276;
+            left: 50%; top: 10px; transform: translateX(-50%); border-radius: 4px;
+        }
+        .main-sheave { 
+            position: absolute; width: 56px; height: 56px; border-radius: 50%; 
+            background: repeating-conic-gradient(#555 0deg 30deg, #333 30deg 60deg);
+            top: 15px; left: 50px; border: 5px solid #111;
+        }
+        .governor { /* 限速器 */
+            position: absolute; width: 25px; height: 25px; border-radius: 50%;
+            background: #c0392b; top: 30px; right: 40px; border: 2px solid #000;
+        }
+
+        /* 多路曳引钢丝绳 */
+        .cables-group { position: absolute; width: 100%; height: 100%; transform: translateZ(30px); }
+        .rope { position: absolute; width: 2px; height: 100%; background: #666; top: 0; }
+
+        /* === 龙门架结构（Car Sling） === */
         .elevator-group {
-            position: absolute; bottom: 0; left: 50px; width: 220px; height: 110px;
+            position: absolute; bottom: 0; left: 55px; width: 210px; height: 115px;
             transform-style: preserve-3d; transition: bottom 2.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .car-frame-vertical {
-            position: absolute; width: 6px; height: 130%; top: -15%;
+        .sling-beam { /* 上梁与底梁 */
+            position: absolute; width: 226px; height: 12px; left: -8px;
+            background: #222; border: 1px solid var(--ind-yellow);
+            transform: translateZ(55px);
+        }
+        .s-top { top: -12px; }
+        .s-bottom { bottom: -12px; }
+        
+        .sling-upright { /* 侧立柱 */
+            position: absolute; width: 10px; height: 140px; top: -12px;
             background: var(--ind-yellow); transform: translateZ(55px);
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            box-shadow: inset -2px 0 5px rgba(0,0,0,0.3);
         }
-        .v-left { left: -5px; } .v-right { right: -5px; }
+        .u-left { left: -8px; } .u-right { right: -8px; }
 
-        .car-box {
-            position: absolute; width: 100%; height: 100%;
-            transform-style: preserve-3d;
-        }
-
-        .face {
-            position: absolute; 
-            border: 1px solid #999;
-            box-sizing: border-box;
-            backface-visibility: hidden;
-        }
-
-        /* =============================
-            内部装饰及亮度修正
-        ============================== */
-
-        /* 1. 后壁：高亮拉丝不锈钢 */
+        /* 轿厢内部（高亮版） */
+        .car-box { position: absolute; width: 100%; height: 100%; transform-style: preserve-3d; }
+        .face { position: absolute; border: 1px solid #aaa; box-sizing: border-box; }
         .f-back { 
-            width: 100%; height: 100%;
-            transform: translateZ(-80px);
-            background: var(--brushed-steel);
-            box-shadow: inset 0 0 50px rgba(255,255,255,0.8);
-            display: flex; justify-content: center; align-items: center;
+            width: 100%; height: 100%; transform: translateZ(-70px);
+            background: var(--brushed-steel); box-shadow: inset 0 0 40px rgba(255,255,255,1);
         }
-        .f-back::after { content: ""; position: absolute; top: 60%; width: 100%; height: 5px; background: #666; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-
-        /* 2. 左侧墙（含控制面板）：修正黑色，改为明亮的浅金属色并加径向光晕 */
-        .f-left { 
-            width: 130px; height: 100%;
-            transform: rotateY(-90deg) translateZ(65px);
-            background: radial-gradient(ellipse at center, #ffffff 0%, #bdc3c7 100%); /* 核心修正：自发光背景 */
-            display: flex; flex-direction: column; align-items: center; padding-top: 15px;
+        .f-left, .f-right { 
+            width: 125px; height: 100%; 
+            background: radial-gradient(circle at center, #fff, #bdc3c7);
         }
-        .inner-panel {
-            width: 40px; height: 80px; background: #34495e; border: 2px solid #2c3e50;
-            border-radius: 3px; display: grid; grid-template-columns: 1fr 1fr; 
-            padding: 5px; gap: 5px; box-shadow: 0 0 15px rgba(255,255,255,0.5);
-        }
-        .i-btn { width: 12px; height: 12px; background: #ecf0f1; border-radius: 50%; box-shadow: inset 0 1px 2px #000; }
-        .i-btn.active { background: #3498db; box-shadow: 0 0 8px #3498db, inset 0 1px 2px #000; }
-
-        /* 3. 右侧墙：与左侧对称，保持高亮 */
-        .f-right { 
-            width: 130px; height: 100%;
-            transform: rotateY(90deg) translateZ(155px);
-            background: radial-gradient(ellipse at center, #ffffff 0%, #bdc3c7 100%);
-        }
-
-        /* 4. 天花板：修正黑色，改为纯白发光体 */
+        .f-left { transform: rotateY(-90deg) translateZ(62px); }
+        .f-right { transform: rotateY(90deg) translateZ(148px); }
         .f-top { 
-            width: 100%; height: 130px;
-            transform: rotateX(90deg) translateZ(65px);
-            background: #fff; /* 核心修正：直接使用白色背景 */
-            box-shadow: 0 0 60px #fff;
-            display: flex; justify-content: center; align-items: center;
+            width: 100%; height: 125px; transform: rotateX(90deg) translateZ(62px);
+            background: #fff; box-shadow: 0 0 50px #fff;
         }
-        .light-fixture {
-            width: 80px; height: 60px; background: #fff;
-            border: 2px solid #eee; box-shadow: inset 0 0 15px rgba(0,0,0,0.1), 0 0 40px #fff;
-        }
-
-        /* 5. 地板 */
         .f-bottom { 
-            width: 100%; height: 130px;
-            transform: rotateX(-90deg) translateZ(45px);
-            background: #546e7a;
-            box-shadow: inset 0 0 30px rgba(255,255,255,0.3);
+            width: 100%; height: 125px; transform: rotateX(-90deg) translateZ(53px);
+            background: #34495e;
         }
+        .f-front { width: 100%; height: 100%; transform: translateZ(55px); pointer-events: none; border: 2px solid #666; }
 
-        /* 前框架与门 */
-        .f-front { width: 100%; height: 100%; transform: translateZ(50px); border: 4px solid var(--ind-yellow); pointer-events: none; }
-        .door-container { position: absolute; width: 100%; height: 100%; transform: translateZ(2px); overflow: hidden; display: flex; justify-content: center; pointer-events: auto; }
-        .door-leaf { width: 49%; height: 100%; background: linear-gradient(90deg, #95a5a6, #ecf0f1, #95a5a6); border: 1px solid #7f8c8d; transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1); }
+        /* 层门/轿门 */
+        .door-container { position: absolute; width: 100%; height: 100%; overflow: hidden; display: flex; transform: translateZ(1px); }
+        .door-leaf { width: 50%; height: 100%; background: linear-gradient(90deg, #95a5a6, #eee, #95a5a6); border: 1px solid #7f8c8d; transition: transform 1.2s ease-in-out; }
         .doors-open .door-left { transform: translateX(-100%); }
         .doors-open .door-right { transform: translateX(100%); }
 
-        /* 其他 UI */
-        .cw { position: absolute; top: 0; right: 20px; width: 40px; height: 100px; background: linear-gradient(#27ae60, #1e8449); transform: translateZ(-30px); transition: top 2.5s; }
-        .panel { background: #1c1f22; padding: 20px; border-radius: 8px; border: 1px solid #333; }
-        .led { background: #000; color: #ff3e3e; font-size: 32px; text-align: center; margin-bottom: 20px; border: 2px solid #222; font-family: 'Courier New', monospace; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { width: 50px; height: 50px; cursor: pointer; background: #34495e; color: white; border: 1px solid #555; border-radius: 4px; font-weight: bold; }
-        button:hover { background: #2c3e50; }
+        /* === 工业级对重框架 === */
+        .cw-frame { 
+            position: absolute; top: 0; right: 20px; width: 30px; height: 140px; 
+            border: 3px solid #555; transform: translateZ(-20px); transition: top 2.5s;
+            background: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; padding: 2px;
+        }
+        .weight-block { width: 100%; height: 10px; background: #222; margin-bottom: 2px; border-bottom: 1px solid #444; }
+
+        /* 底坑缓冲器 */
+        .pitted-buffer {
+            position: absolute; bottom: 0; width: 24px; height: 35px; background: #c0392b;
+            left: 80px; border-radius: 5px 5px 0 0; transform: translateZ(20px);
+            background: repeating-linear-gradient(0deg, #c0392b, #c0392b 4px, #e74c3c 4px, #e74c3c 8px);
+        }
+
+        /* UI Panel */
+        .panel { background: #1c1f22; padding: 20px; border-radius: 4px; border: 1px solid #444; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .led { background: #000; color: #00ff00; font-size: 28px; text-align: center; margin-bottom: 15px; border: 1px solid #333; font-family: 'Digital-7', monospace; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { width: 45px; height: 45px; cursor: pointer; background: #2c3e50; color: #bdc3c7; border: 1px solid #444; font-size: 14px; }
+        button:hover { background: #34495e; color: #fff; }
+        button.active { border-color: var(--ind-yellow); color: var(--ind-yellow); }
     </style>
 </head>
 <body>
@@ -144,31 +154,32 @@
     <div class="panel" id="outUI"></div>
 
     <div class="scene-3d">
-        <div class="shaft">
-            <div class="rail"></div>
-            <div class="rail right"></div>
-            <div class="machine-room"><div class="pulley"></div><div class="pulley right"></div></div>
-            <div class="cable left"></div><div class="cable right"></div>
+        <div class="shaft" id="shaftBG">
+            <div class="rail"></div><div class="rail right"></div>
+            
+            <div class="machine-room">
+                <div class="traction-motor"></div>
+                <div class="main-sheave"></div>
+                <div class="governor"></div>
+            </div>
+
+            <div class="cables-group">
+                <div class="rope" style="left:70px"></div>
+                <div class="rope" style="left:75px"></div>
+                <div class="rope" style="left:80px"></div>
+            </div>
 
             <div class="elevator-group" id="elv">
-                <div class="car-frame-vertical v-left"></div>
-                <div class="car-frame-vertical v-right"></div>
+                <div class="sling-beam s-top"></div>
+                <div class="sling-upright u-left"></div>
+                <div class="sling-upright u-right"></div>
+                <div class="sling-beam s-bottom"></div>
 
                 <div class="car-box">
                     <div class="face f-back"></div>
-                    <div class="face f-left">
-                        <div style="color:#2c3e50; font-size:10px; font-weight:bold; margin-bottom:5px;">CAD-SIM</div>
-                        <div class="inner-panel">
-                            <div class="i-btn"></div><div class="i-btn"></div>
-                            <div class="i-btn active"></div><div class="i-btn"></div>
-                            <div class="i-btn"></div><div class="i-btn"></div>
-                            <div class="i-btn"></div><div class="i-btn"></div>
-                        </div>
-                    </div>
+                    <div class="face f-left"></div>
                     <div class="face f-right"></div>
-                    <div class="face f-top">
-                        <div class="light-fixture"></div>
-                    </div>
+                    <div class="face f-top"></div>
                     <div class="face f-bottom"></div>
                     <div class="face f-front">
                         <div class="door-container" id="doorContainer">
@@ -178,7 +189,16 @@
                     </div>
                 </div>
             </div>
-            <div class="cw" id="cw"></div>
+
+            <div class="cw-frame" id="cw">
+                <div class="weight-block"></div><div class="weight-block"></div>
+                <div class="weight-block"></div><div class="weight-block"></div>
+                <div class="weight-block"></div><div class="weight-block"></div>
+                <div class="weight-block"></div><div class="weight-block"></div>
+            </div>
+
+            <div class="pitted-buffer"></div>
+            <div class="pitted-buffer" style="left:auto; right:80px;"></div>
         </div>
     </div>
 
@@ -193,16 +213,27 @@
     const cw = document.getElementById('cw');
     const led = document.getElementById('led');
     const doors = document.getElementById('doorContainer');
+    const shaft = document.getElementById('shaftBG');
     let cur = 1, moving = false;
 
     function init() {
         const out = document.getElementById('outUI');
         const ins = document.getElementById('inUI');
+        
+        // 动态生成层门门头和按钮
         for(let i=1; i<=6; i++) {
+            const floorPos = (i-1) * 120;
+            // 插入井道机械横梁
+            shaft.insertAdjacentHTML('afterbegin', `
+                <div class="landing-header" style="bottom:${floorPos + 110}px">
+                    FL-${i} HEAD-GEAR UNIT
+                </div>
+            `);
+            
             out.innerHTML = `<div style="height:120px; display:flex; align-items:center;">
-                <button onclick="to(${i})">${i}F</button>
+                <button onclick="to(${i})" id="outBtn${i}">${i}F</button>
             </div>` + out.innerHTML;
-            ins.insertAdjacentHTML('afterbegin', `<button onclick="to(${i})">${i}</button>`);
+            ins.insertAdjacentHTML('afterbegin', `<button onclick="to(${i})" id="inBtn${i}">${i}</button>`);
         }
     }
 
@@ -210,7 +241,11 @@
         if(moving || f === cur) return;
         moving = true;
         doors.classList.remove('doors-open');
+        
+        // 按钮亮起
+        document.getElementById(`inBtn${f}`).classList.add('active');
 
+        // 运动计算
         elv.style.bottom = (f-1)*120 + "px";
         cw.style.top = (f-1)*120 + "px";
 
@@ -225,10 +260,11 @@
                 cur = f;
                 setTimeout(() => {
                     moving = false;
+                    document.getElementById(`inBtn${f}`).classList.remove('active');
                     doors.classList.add('doors-open');
                     setTimeout(() => {
                         if(!moving) doors.classList.remove('doors-open');
-                    }, 4000);
+                    }, 3500);
                 }, 500);
             }
         }, 500);
