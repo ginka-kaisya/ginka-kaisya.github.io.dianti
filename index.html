@@ -2,198 +2,188 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>工程级 3D 电梯机械系统 - 全空间仿真版</title>
+    <title>工程级 3D 电梯机械仿真 - V3.0 动力增强版</title>
     <style>
         :root {
             --floor-h: 120px;
             --ind-yellow: #f1c40f; 
-            --steel-grey: #7f8c8d;
-            --rope-color: #95a5a6;
-            --shaft-depth: 300px;
+            --steel: #7f8c8d;
+            --shaft-w: 400px;
+            --shaft-d: 300px;
         }
 
         body {
-            margin: 0; background: #050608; color: #fff;
-            font-family: 'Segoe UI', Consolas, monospace;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden; perspective: 1500px;
+            margin: 0; background: #080a0c; color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden; perspective: 2000px;
         }
 
-        /* 控制台布局 */
-        .main-layout { display: flex; gap: 50px; align-items: center; transform-style: preserve-3d; }
+        .main-layout { 
+            display: grid; 
+            grid-template-columns: 200px 500px 200px; 
+            gap: 20px; 
+            align-items: center;
+        }
 
         /* === 3D 场景核心 === */
         .scene-wrap {
-            width: 450px; height: 750px; position: relative;
+            width: 100%; height: 750px; position: relative;
             transform-style: preserve-3d;
             transform: rotateY(-20deg) rotateX(10deg);
-            transition: transform 0.5s ease-out;
+            transition: transform 0.5s;
         }
 
-        .shaft-3d {
+        .shaft {
             position: absolute; width: 100%; height: 100%;
             transform-style: preserve-3d;
+            border: 2px solid #1a252f;
         }
 
-        /* 井道结构壁 */
-        .wall {
-            position: absolute; background: rgba(15, 18, 22, 0.98);
-            border: 1px solid #1a252f; box-shadow: inset 0 0 100px #000;
+        /* 井道壁 */
+        .wall { position: absolute; background: rgba(20, 25, 30, 0.9); border: 1px solid #2c3e50; }
+        .w-back { width: 100%; height: 100%; transform: translateZ(calc(var(--shaft-d) * -0.5)); }
+        
+        /* 导轨与支架 (图中: 导轨) */
+        .rail {
+            position: absolute; width: 8px; height: 100%; background: #444;
+            left: 35px; transform: translateZ(0); box-shadow: 2px 0 5px #000;
         }
-        .wall-back { width: 100%; height: 100%; transform: translateZ(calc(var(--shaft-depth) * -1 / 2)); }
-        .wall-left { width: var(--shaft-depth); height: 100%; transform: rotateY(90deg) translateZ(calc(var(--shaft-depth) * -1 / 2)); }
-        .wall-right { width: var(--shaft-depth); height: 100%; transform: rotateY(-90deg) translateZ(calc(450px - var(--shaft-depth) / 2)); }
-
-        /* 立体导轨 (主轨) */
-        .rail-3d {
-            position: absolute; width: 12px; height: 100%; background: #333;
-            left: 30px; transform: translateZ(0); transform-style: preserve-3d;
-        }
-        .rail-3d::before { /* 轨道侧翼 */
-            content: ''; position: absolute; width: 8px; height: 100%; background: #222;
-            transform: rotateY(90deg); left: 6px;
-        }
-        .rail-right { left: auto; right: 30px; }
-
-        /* 对重导轨 (位于背壁) */
-        .cw-rail {
-            position: absolute; width: 8px; height: 100%; background: #222;
-            left: 50%; transform: translateX(-50%) translateZ(calc(var(--shaft-depth) * -1 / 2 + 10px));
+        .rail-r { left: auto; right: 35px; }
+        .bracket {
+            position: absolute; width: 40px; height: 10px; background: #222;
+            left: 0; border: 1px solid #333;
         }
 
-        /* === 3D 轿厢组 === */
-        .car-system {
-            position: absolute; bottom: 0; left: 65px; width: 320px; height: 135px;
+        /* === 轿厢系统 (图中: 轿厢) === */
+        .car-sys {
+            position: absolute; bottom: 0; left: 60px; width: 280px; height: 140px;
             transform-style: preserve-3d; transition: bottom 2.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 轿顶动滑轮 (2:1 绕绳) */
-        .pulley-box {
-            position: absolute; top: -45px; width: 100%; display: flex; justify-content: space-around;
-            transform: rotateY(90deg); transform-style: preserve-3d;
+        /* 轿顶细节 (图中: 平层传感器、上横梁) */
+        .car-top {
+            position: absolute; top: -30px; width: 100%; height: 30px;
+            background: #34495e; transform-style: preserve-3d;
+            border: 1px solid #444;
         }
-        .pulley {
-            width: 45px; height: 45px; border-radius: 50%; border: 4px solid var(--ind-yellow);
-            background: repeating-conic-gradient(#333 0 30deg, #111 30deg 60deg);
-        }
-
-        /* 3D 轿体 */
-        .car-3d {
-            position: absolute; width: 100%; height: 100%; transform-style: preserve-3d;
-        }
-        .car-face { position: absolute; border: 1px solid #555; box-sizing: border-box; }
-        .c-front { width: 100%; height: 100%; transform: translateZ(80px); background: rgba(255,255,255,0.05); }
-        .c-back { width: 100%; height: 100%; transform: translateZ(-80px); background: #bdc3c7; box-shadow: inset 0 0 50px #fff; }
-        .c-left { width: 160px; height: 100%; transform: rotateY(90deg) translateZ(-80px); background: #ecf0f1; }
-        .c-right { width: 160px; height: 100%; transform: rotateY(-90deg) translateZ(-240px); background: #ecf0f1; }
-        .c-top { width: 100%; height: 160px; transform: rotateX(90deg) translateZ(80px); background: #fff; box-shadow: 0 0 40px #fff; }
-        .c-bottom { width: 100%; height: 160px; transform: rotateX(90deg) translateZ(-55px); background: #2c3e50; }
-
-        /* 轿门立体感 */
-        .door-set { position: absolute; width: 100%; height: 100%; display: flex; transform: translateZ(81px); overflow: hidden; }
-        .d-leaf { width: 50%; height: 100%; background: linear-gradient(90deg, #7f8c8d, #fff, #7f8c8d); border: 1px solid #34495e; transition: 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .open .d-left { transform: translateX(-100%); }
-        .open .d-right { transform: translateX(100%); }
-
-        /* === 3D 对重装置 (3D Counterweight) === */
-        .cw-system {
-            position: absolute; top: 0; left: 50%; width: 60px; height: 160px;
-            transform: translateX(-50%) translateZ(calc(var(--shaft-depth) * -1 / 2 + 20px));
-            transform-style: preserve-3d; transition: top 2.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .cw-frame {
-            position: absolute; width: 100%; height: 100%; border: 3px solid #555;
-            background: rgba(0,0,0,0.8); transform-style: preserve-3d;
-        }
-        .weight-block-3d {
-            width: 100%; height: 12px; background: #222; border: 1px solid #444;
-            margin-bottom: 2px; transform: translateZ(5px); box-shadow: 0 2px 5px #000;
-        }
-
-        /* 钢丝绳 (SVG 动态模拟) */
-        .ropes-svg {
-            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
-            pointer-events: none; transform: translateZ(0px);
-        }
-
-        /* UI */
-        .controls {
-            display: flex; flex-direction: column; gap: 20px;
-        }
-        .panel { 
-            background: #111; padding: 20px; border: 1px solid #333; 
-            border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .screen { background: #000; color: #0f0; font-family: 'Digital-7', Courier; font-size: 32px; text-align: center; padding: 10px; margin-bottom: 15px; border: 1px solid #222; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { width: 50px; height: 50px; background: #2c3e50; color: #fff; border: 1px solid #444; cursor: pointer; font-weight: bold; }
-        button.active { border-color: var(--ind-yellow); color: var(--ind-yellow); box-shadow: 0 0 15px var(--ind-yellow); }
         
-        .cam-slider { width: 100%; margin-top: 10px; }
+        /* 检修盒 (图中轿顶方盒) */
+        .insp-box {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 15px; background: #f1c40f; border: 1px solid #000;
+        }
+
+        /* 平层感应器 (图中: 平层传感器) */
+        .sensor-unit {
+            position: absolute; top: -45px; right: 20px; width: 40px; height: 35px;
+            background: #111; border: 2px solid var(--ind-yellow);
+        }
+
+        /* 轿体 */
+        .car-body { position: absolute; width: 100%; height: 100%; transform-style: preserve-3d; }
+        .face { position: absolute; border: 1px solid #555; background: #bdc3c7; }
+        .f-front { width: 100%; height: 100%; transform: translateZ(70px); background: rgba(236, 240, 241, 0.1); overflow: hidden; }
+        .f-back { width: 100%; height: 100%; transform: translateZ(-70px); }
+        .f-side { width: 140px; height: 100%; transform: rotateY(90deg) translateZ(-70px); }
+        .f-side-r { width: 140px; height: 100%; transform: rotateY(-90deg) translateZ(-210px); }
+
+        .door { width: 50%; height: 100%; background: linear-gradient(90deg, #7f8c8d, #eee, #7f8c8d); border: 1px solid #34495e; transition: 1s; }
+        .open .d-l { transform: translateX(-100%); }
+        .open .d-r { transform: translateX(100%); }
+
+        /* === 对重系统 === */
+        .cw-sys {
+            position: absolute; top: 0; right: 10px; width: 40px; height: 180px;
+            background: #222; border: 2px solid #444;
+            transform: translateZ(-100px);
+            transition: top 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; align-items: center; padding-top: 5px;
+        }
+        .weight-block { width: 30px; height: 12px; background: #111; margin-bottom: 2px; border: 1px solid #333; }
+
+        /* 动态钢丝绳 */
+        .rope-svg {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            pointer-events: none; transform: translateZ(0);
+        }
+
+        /* === 控制面板 === */
+        .panel { background: #1a1d23; padding: 20px; border-radius: 10px; border: 1px solid #34495e; }
+        .screen { background: #000; color: #ff4757; font-family: 'Courier New', monospace; font-size: 30px; text-align: center; padding: 10px; margin-bottom: 15px; border: 2px solid #333; }
+        
+        .btn-call { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #888; font-size: 12px; }
+        button { background: #2f3542; color: #fff; border: 1px solid #57606f; padding: 8px; cursor: pointer; transition: 0.3s; border-radius: 4px; }
+        button:hover { background: #546de5; }
+        button.active { background: #f1c40f; color: #000; box-shadow: 0 0 10px #f1c40f; }
+
+        .xray .face { background: rgba(189, 195, 199, 0.1) !important; border: 1px dashed #555; }
+        
+        /* 标签标注 */
+        .label { position: absolute; font-size: 11px; color: var(--ind-yellow); border-left: 2px solid var(--ind-yellow); padding-left: 5px; pointer-events: none; white-space: nowrap; }
     </style>
 </head>
-<body>
+<body class="">
 
 <div class="main-layout">
     <div class="controls">
         <div class="panel">
-            <div style="font-size: 12px; color: #888; margin-bottom: 5px;">3D VIEW ROTATION</div>
-            <input type="range" class="cam-slider" min="-60" max="60" value="-20" oninput="rotateScene(this.value)">
+            <div style="font-size: 11px; color: #57606f; margin-bottom: 10px;">外呼系统 / EXTERNAL</div>
+            <div id="extButtons"></div>
+            <hr style="border: 0; border-top: 1px solid #333; margin: 15px 0;">
+            <button onclick="toggleXray()" style="width: 100%; font-size: 12px;">切换透视模式</button>
+            <div style="margin-top:10px;">
+                <input type="range" style="width:100%" min="-60" max="60" value="-20" oninput="rotateScene(this.value)">
+            </div>
         </div>
-        <div class="panel" id="externalCalls"></div>
     </div>
 
     <div class="scene-wrap" id="scene">
-        <div class="shaft-3d">
-            <div class="wall wall-back"></div>
-            <div class="wall wall-left"></div>
-            <div class="wall wall-right"></div>
+        <div class="shaft">
+            <div class="wall w-back"></div>
             
-            <div class="rail-3d"></div>
-            <div class="rail-3d rail-right"></div>
-            <div class="cw-rail"></div>
+            <div class="rail"></div>
+            <div class="rail rail-r" id="railR"></div>
+            <div id="brackets"></div>
 
-            <svg class="ropes-svg">
-                <line id="ropeL" x1="100" y1="0" x2="100" y2="600" stroke="#777" stroke-width="2" />
-                <line id="ropeR" x1="220" y1="0" x2="220" y2="600" stroke="#777" stroke-width="2" />
-                <line id="ropeCW" x1="225" y1="0" x2="225" y2="150" stroke="#555" stroke-width="3" />
+            <svg class="rope-svg">
+                <line id="ropeCar" x1="140" y1="0" x2="140" y2="600" stroke="#555" stroke-width="2" />
+                <line id="ropeCw" x1="375" y1="0" x2="375" y2="150" stroke="#777" stroke-width="2" />
             </svg>
 
-            <div class="car-system" id="carSys">
-                <div class="pulley-box">
-                    <div class="pulley"></div>
-                    <div class="pulley"></div>
+            <div class="car-sys" id="carSys">
+                <div class="car-top">
+                    <div class="insp-box"></div>
+                    <div class="sensor-unit"></div>
+                    <div class="label" style="top: -50px; right: -80px;">平层传感器 (磁感应)</div>
                 </div>
-                <div class="car-3d" id="carBody">
-                    <div class="car-face c-back"></div>
-                    <div class="car-face c-left"></div>
-                    <div class="car-face c-right"></div>
-                    <div class="car-face c-top"></div>
-                    <div class="car-face c-bottom"></div>
-                    <div class="car-face c-front">
-                        <div class="door-set" id="doors">
-                            <div class="d-leaf d-left"></div>
-                            <div class="d-leaf d-right"></div>
+                <div class="car-body">
+                    <div class="face f-back"></div>
+                    <div class="face f-side"></div>
+                    <div class="face f-side-r"></div>
+                    <div class="face f-front" id="doors">
+                        <div style="display: flex; height: 100%;">
+                            <div class="door d-l"></div>
+                            <div class="door d-r"></div>
                         </div>
                     </div>
                 </div>
+                <div class="label" style="bottom: 20px; left: -80px;">轿厢主体</div>
             </div>
 
-            <div class="cw-system" id="cwSys">
-                <div class="cw-frame">
-                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
-                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
-                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
-                    <div class="weight-block-3d"></div><div class="weight-block-3d"></div>
-                </div>
+            <div class="cw-sys" id="cwSys">
+                <div class="weight-block"></div><div class="weight-block"></div>
+                <div class="weight-block"></div><div class="weight-block"></div>
+                <div class="weight-block"></div><div class="weight-block"></div>
+                <div class="label" style="top: 0; right: -50px;">对重装置</div>
             </div>
         </div>
     </div>
 
     <div class="controls">
         <div class="panel">
-            <div class="screen" id="led">1</div>
-            <div class="btn-grid" id="internalButtons"></div>
+            <div class="screen" id="floorDisplay">1</div>
+            <div id="intButtons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
         </div>
     </div>
 </div>
@@ -201,85 +191,95 @@
 <script>
     const carSys = document.getElementById('carSys');
     const cwSys = document.getElementById('cwSys');
-    const led = document.getElementById('led');
+    const floorDisplay = document.getElementById('floorDisplay');
     const doors = document.getElementById('doors');
-    const scene = document.getElementById('scene');
+    const ropeCar = document.getElementById('ropeCar');
+    const ropeCw = document.getElementById('ropeCw');
     
-    // 绳索逻辑
-    const rL = document.getElementById('ropeL');
-    const rR = document.getElementById('ropeR');
-    const rCW = document.getElementById('ropeCW');
-
     let curFloor = 1, isMoving = false;
+    const FLOORS = 6;
+    const HEIGHT = 120;
 
     function init() {
-        const ext = document.getElementById('externalCalls');
-        const ins = document.getElementById('internalButtons');
-        for(let i=1; i<=6; i++) {
-            ext.innerHTML = `<button onclick="goTo(${i})">${i}F</button>` + ext.innerHTML;
-            ins.insertAdjacentHTML('beforeend', `<button onclick="goTo(${i})" id="btn${i}">${i}</button>`);
+        const ext = document.getElementById('extButtons');
+        const ins = document.getElementById('intButtons');
+        const brackets = document.getElementById('brackets');
+        const railR = document.getElementById('railR');
+
+        for(let i=FLOORS; i>=1; i--) {
+            // 外呼
+            ext.innerHTML += `<div class="btn-call">F${i} <button onclick="goTo(${i})" id="ebtn${i}">CALL</button></div>`;
+            // 内选
+            ins.insertAdjacentHTML('afterbegin', `<button onclick="goTo(${i})" id="ibtn${i}">${i}</button>`);
+            
+            // 导轨支架与磁铁
+            brackets.innerHTML += `<div class="bracket" style="bottom:${(i-1)*HEIGHT}px"></div>`;
+            railR.innerHTML += `<div style="position:absolute; width:10px; height:30px; background:#e74c3c; bottom:${(i-1)*HEIGHT + 65}px; right:-10px; border:1px solid #000;"></div>`;
         }
         updateRopes(1);
     }
 
     function rotateScene(val) {
-        scene.style.transform = `rotateY(${val}deg) rotateX(10deg)`;
+        document.getElementById('scene').style.transform = `rotateY(${val}deg) rotateX(10deg)`;
     }
 
-    function updateRopes(floor) {
-        const carBottom = (floor-1) * 120;
-        const carTopY = 750 - carBottom - 180; // 考虑轿厢高度和滑轮位置
-        const cwTopY = carBottom + 20; // 对重与轿厢反向运动
+    function toggleXray() {
+        document.body.classList.toggle('xray');
+    }
 
-        rL.setAttribute('y2', carTopY);
-        rR.setAttribute('y2', carTopY);
-        rCW.setAttribute('y2', cwTopY);
+    function updateRopes(f) {
+        const carY = 750 - ((f-1) * HEIGHT + 170);
+        const cwY = (f-1) * HEIGHT + 10;
+        ropeCar.setAttribute('y2', carY);
+        ropeCw.setAttribute('y2', cwY);
     }
 
     function goTo(f) {
         if(isMoving || f === curFloor) return;
         isMoving = true;
-        doors.classList.remove('open');
-        document.getElementById(`btn${f}`).classList.add('active');
-
-        // 运动执行
-        carSys.style.bottom = (f-1) * 120 + "px";
-        cwSys.style.top = (f-1) * 120 + "px";
         
-        // 动态更新绳索
-        let startPos = (curFloor-1) * 120;
-        let targetPos = (f-1) * 120;
-        let startTime = null;
+        doors.classList.remove('open');
+        document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`ibtn${f}`).classList.add('active');
+        document.getElementById(`ebtn${f}`).classList.add('active');
 
-        function animateRopes(timestamp) {
-            if (!startTime) startTime = timestamp;
-            let progress = (timestamp - startTime) / 2500; // 2.5s duration
-            if (progress > 1) progress = 1;
+        // 运动
+        carSys.style.bottom = (f-1) * HEIGHT + "px";
+        cwSys.style.top = (f-1) * HEIGHT + "px";
 
-            const currentFloorSim = curFloor + (f - curFloor) * progress;
-            updateRopes(currentFloorSim);
+        // 绳索动画同步
+        let start = Date.now();
+        const duration = 2500;
+        const startF = curFloor;
+        
+        const animate = () => {
+            let elapsed = Date.now() - start;
+            let progress = Math.min(elapsed / duration, 1);
+            // 缓动函数
+            let ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+            let currentF = startF + (f - startF) * ease;
+            updateRopes(currentF);
+            
+            if(progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
 
-            if (progress < 1) requestAnimationFrame(animateRopes);
-        }
-        requestAnimationFrame(animateRopes);
-
-        // 楼层显示逻辑
+        // 楼层变化
         let step = curFloor;
         const dir = f > curFloor ? 1 : -1;
         const timer = setInterval(() => {
             if(step !== f) {
                 step += dir;
-                led.innerText = step;
+                floorDisplay.innerText = step;
             } else {
                 clearInterval(timer);
                 curFloor = f;
                 setTimeout(() => {
                     isMoving = false;
-                    document.getElementById(`btn${f}`).classList.remove('active');
                     doors.classList.add('open');
                 }, 600);
             }
-        }, 450);
+        }, 400);
     }
 
     init();
